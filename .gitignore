@@ -1,0 +1,7 @@
+*.log
+*.bak
+*.bak.*
+zombie-killer.log
+.env
+.DS_Store
+Thumbs.db
