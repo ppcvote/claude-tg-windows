@@ -16,6 +16,8 @@ This repo collects what we landed on after several months of running this setup 
 
 ## What's inside
 
+### Phase 1 — boot + process management (the original release)
+
 | File | Purpose |
 | ---- | ------- |
 | `scripts/health-check.sh` | Runs once on every boot. Verifies bun + token + access.json, cleans stale inbox files, kills orphaned Telegram bun processes from previous Windows sessions. |
@@ -23,6 +25,21 @@ This repo collects what we landed on after several months of running this setup 
 | `boot-scripts/claude-telegram-startup.bat` | Wakes the network (15s delay), puts `bun` on PATH, then invokes `health-check.sh`. Lives outside the Startup folder so Windows never opens a console window for it. |
 | `startup/claude-telegram-startup.vbs` | Silent launcher placed in the Startup folder. Calls the `.bat` with `windowstyle=0`. This is the *only* file Windows actually executes at logon. |
 | `install.ps1` | One-shot installer: copies files into `%USERPROFILE%`, creates the `TGZombieKiller` scheduled task, registers the silent launcher in the Startup folder. |
+
+### Phase 2 — hooks + adversarial reviewer (added after 2 months of production use)
+
+Phase 1 keeps the Telegram channel *alive*. Phase 2 makes the *workflow* on
+top of it reliable: cross-session continuity, never-forget-to-mirror-back,
+and a built-in critic for catching your own hallucinated claims.
+
+| File | Purpose |
+| ---- | ------- |
+| `hooks/tg-log.py` | Rolling log of all Telegram in/out + a SessionStart inject hook that gives every new Claude session context of the last ~20 TG messages. Cross-session memory without copy-pasting. |
+| `hooks/tg-mirror-check.py` | After each assistant turn, checks whether the last inbound TG message got a reply. If it didn't (e.g. Claude answered in the terminal but forgot to mirror back), pings you via the Telegram bot API. Solves the #1 failure mode of the TG-as-control-tower workflow. |
+| `agents/critic.md` | A user-scoped Claude Code agent that does adversarial review on deliverables produced by the main agent. Built around a "verify with tools or shut up" rule. Use it when you'd otherwise feel "this draft is fine" and want a second opinion that can grep / curl / WebFetch its claims. |
+| `examples/settings.json.example` | Pre-wired hook entries you can merge into your `~/.claude/settings.json`. |
+| `docs/workflow-architecture.md` | The "why" behind the four design choices that make this setup survive 2+ months of daily use. Read this before customizing. |
+| `docs/setup-walkthrough.md` | Step-by-step installation guide for the Phase 2 pieces (10-15 minutes). |
 
 ---
 
@@ -116,3 +133,13 @@ MIT.
 這個 repo 是我們實測幾個月後的解法，不是什麼高深技術 — 加總約 200 行 PowerShell / Bash / VBScript — 但這套就是讓 plugin 在 Windows 穩定下來的關鍵。
 
 安裝方式跟上面英文段一樣。前置要 Claude Code、Git for Windows、Bun。`install.ps1` 跑一次就完事。
+
+### Phase 2 — hooks + critic agent
+
+Phase 1 解決「TG 通道掛掉」。Phase 2 解決「workflow 不夠穩」：
+
+- **`hooks/tg-log.py`** — 滾動式記錄所有 TG 對話 + SessionStart hook 把最近 20 則訊息注入新 session，等於跨 session 記憶。
+- **`hooks/tg-mirror-check.py`** — 每次 Claude 答覆結束自動檢查：上一則 TG inbound 有沒有被 reply 到？如果只在 terminal 答（忘了 mirror 回 TG），主動推 ⚠️ 警告。解決 TG-as-control-tower 模式最常見的失誤。
+- **`agents/critic.md`** — 對抗式 reviewer agent，專門找 deliverable 漏洞。規則：「沒實際用 tool verify 就不算 finding」。寫完 draft 自我感覺良好時叫他出來潑冷水。
+
+完整背景看 `docs/workflow-architecture.md`，逐步安裝看 `docs/setup-walkthrough.md`。
