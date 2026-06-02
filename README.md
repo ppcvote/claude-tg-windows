@@ -8,7 +8,7 @@ If you use Claude Code + Telegram MCP on Windows long enough, you'll hit three t
 2. **The Telegram poll loop dies after a while** — usually because an orphaned `bun.exe` from a previous Claude session is still polling `getUpdates` and stealing inbound messages.
 3. **You accidentally open two Claude Code sessions** (one in VS Code, one in a terminal) and one of them silently zombies the other's Telegram channel.
 
-This repo collects what we landed on after several months of running this setup in production. None of it is technically deep — it's ~200 lines of glue across PowerShell / Bash / VBScript — but it's the missing piece that keeps the plugin reliable on Windows.
+This repo collects what we landed on after several months of running this setup in production. None of it is technically deep — under 250 lines of glue across PowerShell / Bash / VBScript — but it's the missing piece that keeps the plugin reliable on Windows.
 
 > Battle-tested by [Ultra Lab](https://ultralab.tw)'s solo founder, who lives in Telegram and reboots a lot.
 

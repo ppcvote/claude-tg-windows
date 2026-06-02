@@ -24,18 +24,23 @@ spamming. Log: ~/.claude/tg-log/missed-mirrors.log
 
 ## Installation
 
-1. Drop this file at `~/.claude/hooks/tg-mirror-check.py`
+1. Drop this file at `<HOME>/.claude/hooks/tg-mirror-check.py`
+   (where `<HOME>` is your full home path — `~` is NOT expanded by Claude
+   Code's hook runner, so you must use a resolved absolute path or
+   `%USERPROFILE%` on Windows.)
+
 2. Set env vars (system env, .env, or whatever your shell uses):
        TG_ALERT_BOT_TOKEN=123456:ABC...
-       TG_ALERT_CHAT_ID=781284060
-3. Add the Stop hook to `~/.claude/settings.json`:
+       TG_ALERT_CHAT_ID=123456789
+
+3. Add the Stop hook to `<HOME>/.claude/settings.json`:
 
 ```json
 {
   "hooks": {
     "Stop": [
       {"hooks": [{"type": "command",
-                  "command": "python ~/.claude/hooks/tg-mirror-check.py"}]}
+                  "command": "python <HOME>/.claude/hooks/tg-mirror-check.py"}]}
     ]
   }
 }

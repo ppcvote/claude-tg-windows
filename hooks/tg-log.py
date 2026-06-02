@@ -16,28 +16,38 @@ Log path: ~/.claude/tg-log/recent.jsonl (capped at 60 entries by default)
 
 ## Installation
 
-1. Drop this file at `~/.claude/hooks/tg-log.py`
-2. In `~/.claude/settings.json` add the three hook entries:
+1. Drop this file at `<HOME>/.claude/hooks/tg-log.py`
+   (where `<HOME>` is your real home directory — `C:/Users/you` on Windows,
+   forward slashes recommended; or `/home/you` on Linux / `/Users/you` on macOS)
+
+2. In `<HOME>/.claude/settings.json` add the three hook entries.
+   **Important**: Claude Code's hook runner does NOT expand `~` in the
+   `command` field — you must write the full resolved path. On Windows
+   the `%USERPROFILE%` env var works inside cmd-style invocations:
 
 ```json
 {
   "hooks": {
     "SessionStart": [
       {"hooks": [{"type": "command",
-                  "command": "python ~/.claude/hooks/tg-log.py inject"}]}
+                  "command": "python <HOME>/.claude/hooks/tg-log.py inject"}]}
     ],
     "UserPromptSubmit": [
       {"hooks": [{"type": "command",
-                  "command": "python ~/.claude/hooks/tg-log.py inbound"}]}
+                  "command": "python <HOME>/.claude/hooks/tg-log.py inbound"}]}
     ],
     "PostToolUse": [
       {"matcher": "mcp__plugin_telegram_telegram__reply",
        "hooks": [{"type": "command",
-                  "command": "python ~/.claude/hooks/tg-log.py outbound"}]}
+                  "command": "python <HOME>/.claude/hooks/tg-log.py outbound"}]}
     ]
   }
 }
 ```
+
+Replace `<HOME>` with your resolved home path (forward slashes are fine on
+all platforms when passing to `python`). On Windows you may use
+`%USERPROFILE%` in its place if you prefer cmd-style env expansion.
 
 Hooks never fail loudly: any error path swallows + exits 0, so a buggy log
 file can't block Claude Code's normal session flow.
@@ -177,7 +187,13 @@ def cmd_outbound() -> None:
 
 
 def cmd_inject() -> None:
-    """Render the recent log entries to stdout — the SessionStart hook delivers them as context."""
+    """Render recent log entries via the SessionStart hook's `additionalContext` envelope.
+
+    Claude Code's SessionStart hook expects JSON of the form
+    `{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "..."}}`
+    on stdout. Raw text may show in the transcript but isn't guaranteed to be
+    injected into the model's context — the envelope is the documented contract.
+    """
     entries = load_entries()
     if not entries:
         return
@@ -203,7 +219,14 @@ def cmd_inject() -> None:
             extras.append(f"attachment={e['attachment_file_id']}")
         suffix = f" [{', '.join(extras)}]" if extras else ""
         lines.append(f"[{ts}] {arrow} {text}{suffix}")
-    sys.stdout.write("\n".join(lines) + "\n")
+
+    payload = {
+        "hookSpecificOutput": {
+            "hookEventName": "SessionStart",
+            "additionalContext": "\n".join(lines),
+        }
+    }
+    sys.stdout.write(json.dumps(payload, ensure_ascii=False))
 
 
 def main() -> None:

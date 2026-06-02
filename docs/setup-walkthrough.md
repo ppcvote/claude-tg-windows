@@ -42,36 +42,49 @@ cp hooks/tg-log.py hooks/tg-mirror-check.py ~/.claude/hooks/
 
 ## 2. Wire them into settings.json
 
-Open `~/.claude/settings.json`. Merge the `hooks` block from
+Open `~/.claude/settings.json` (real path on Windows:
+`C:/Users/<you>/.claude/settings.json`). Merge the `hooks` block from
 `examples/settings.json.example` into it. If your `settings.json` doesn't
 have a `hooks` key yet, you can copy the whole block. If it does, merge
 each event handler (don't overwrite existing entries).
 
-A minimal settings.json with just the hooks looks like:
+> ⚠️ **Critical: replace every `<HOME>` placeholder with your real home
+> path before saving.** Claude Code's hook runner does NOT expand `~` or
+> `$HOME` in the `command` field. A snippet like
+> `"python ~/.claude/hooks/tg-log.py inject"` will silently fail — Python
+> tries to open the file literally named `~/.claude/...` which doesn't
+> exist, then the hook runner swallows the error and you'll think the hook
+> is installed when it isn't.
+
+A minimal settings.json with just the hooks (after `<HOME>` substitution
+on Windows):
 
 ```json
 {
   "hooks": {
     "SessionStart": [
       {"hooks": [{"type": "command",
-                  "command": "python ~/.claude/hooks/tg-log.py inject"}]}
+                  "command": "python C:/Users/you/.claude/hooks/tg-log.py inject"}]}
     ],
     "UserPromptSubmit": [
       {"hooks": [{"type": "command",
-                  "command": "python ~/.claude/hooks/tg-log.py inbound"}]}
+                  "command": "python C:/Users/you/.claude/hooks/tg-log.py inbound"}]}
     ],
     "PostToolUse": [
       {"matcher": "mcp__plugin_telegram_telegram__reply",
        "hooks": [{"type": "command",
-                  "command": "python ~/.claude/hooks/tg-log.py outbound"}]}
+                  "command": "python C:/Users/you/.claude/hooks/tg-log.py outbound"}]}
     ],
     "Stop": [
       {"hooks": [{"type": "command",
-                  "command": "python ~/.claude/hooks/tg-mirror-check.py"}]}
+                  "command": "python C:/Users/you/.claude/hooks/tg-mirror-check.py"}]}
     ]
   }
 }
 ```
+
+Use forward slashes on Windows — they work with `python` and avoid the
+`C:\Users\...` backslash-escape trap inside JSON strings.
 
 > Windows tip: if `python` isn't on PATH for the hook runner, use the
 > absolute path (e.g. `C:/Users/<you>/AppData/Local/Programs/Python/Python311/python.exe`).
@@ -81,18 +94,19 @@ A minimal settings.json with just the hooks looks like:
 The mirror-check hook pings you back via the Telegram bot API when Claude
 forgets to mirror a reply. It needs two env vars:
 
-- `TG_ALERT_BOT_TOKEN` — your bot's token (same one Claude's MCP uses; find
-  it via `/telegram:configure` or in `~/.claude/channels/telegram/access.json`
-  context if you exported it there)
+- `TG_ALERT_BOT_TOKEN` — the same bot token you pasted during
+  `/telegram:configure`. If you didn't save it, re-run `/telegram:configure`
+  or ask @BotFather on Telegram for your bot's token (it'll be of the form
+  `123456:ABC...`).
 - `TG_ALERT_CHAT_ID` — your Telegram numeric chat_id (the same one in
-  `access.json` `allowFrom`)
+  `~/.claude/channels/telegram/access.json` under `allowFrom`).
 
 Set them as **system env vars** (so they're inherited by Claude Code's hook
 runner). On Windows:
 
 ```powershell
 [Environment]::SetEnvironmentVariable("TG_ALERT_BOT_TOKEN", "123456:ABC...", "User")
-[Environment]::SetEnvironmentVariable("TG_ALERT_CHAT_ID", "781284060", "User")
+[Environment]::SetEnvironmentVariable("TG_ALERT_CHAT_ID", "123456789", "User")
 ```
 
 Restart your terminal / Claude Code so the env vars are picked up.

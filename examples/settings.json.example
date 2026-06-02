@@ -1,14 +1,11 @@
 {
-  "_comment": "Example ~/.claude/settings.json showing how the three hooks from this repo (tg-log.py + tg-mirror-check.py) wire together. Drop into your own settings.json (merge the 'hooks' key into yours if you already have one).",
-
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "_comment": "Injects the last ~20 TG messages into context when a new session starts — gives cross-session continuity.",
-            "command": "python ~/.claude/hooks/tg-log.py inject"
+            "command": "python <HOME>/.claude/hooks/tg-log.py inject"
           }
         ]
       }
@@ -19,8 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "_comment": "Scrapes <channel source=\"plugin:telegram:telegram\"> tags from each prompt and appends them to the rolling log.",
-            "command": "python ~/.claude/hooks/tg-log.py inbound"
+            "command": "python <HOME>/.claude/hooks/tg-log.py inbound"
           }
         ]
       }
@@ -32,8 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "_comment": "Logs every outbound TG reply Claude sends, so tg-mirror-check.py can later tell whether a turn included a TG mirror.",
-            "command": "python ~/.claude/hooks/tg-log.py outbound"
+            "command": "python <HOME>/.claude/hooks/tg-log.py outbound"
           }
         ]
       }
@@ -44,8 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "_comment": "After each assistant turn, checks whether the last inbound TG message got a reply. If not, alerts you via the Telegram bot API (requires TG_ALERT_BOT_TOKEN + TG_ALERT_CHAT_ID env vars).",
-            "command": "python ~/.claude/hooks/tg-mirror-check.py"
+            "command": "python <HOME>/.claude/hooks/tg-mirror-check.py"
           }
         ]
       }
