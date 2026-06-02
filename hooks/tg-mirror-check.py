@@ -51,12 +51,14 @@ can't block Claude Code's normal Stop event.
 
 ## Tuning
 
-`SUBSTANTIVE_MIN_CHARS` controls the noise floor. Default 15: short single-
-word acks like "OK" / "好" / "1" don't trigger. Anything longer, or
-containing a question mark, does.
+`SUBSTANTIVE_MIN_CHARS` controls the noise floor. Default 8: tuned for
+short-burst CJK message culture (Chinese / Japanese / Korean users tend
+to send 4-12 character messages that absolutely require a reply). Single-
+word English acks like "ok" / "ack" / "thx" stay below this. Question
+marks trigger regardless of length.
 
-If you keep getting false positives, raise the floor or add specific
-ack-only strings to the skip list inside `is_substantive`.
+If you mostly write longer English messages, bumping to 15 or 20 gives
+more headroom against false positives.
 """
 from __future__ import annotations
 
@@ -79,7 +81,7 @@ if hasattr(sys.stderr, "buffer"):
 LOG = Path.home() / ".claude" / "tg-log" / "recent.jsonl"
 MISSED_LOG = Path.home() / ".claude" / "tg-log" / "missed-mirrors.log"
 
-SUBSTANTIVE_MIN_CHARS = 15
+SUBSTANTIVE_MIN_CHARS = 8
 QUESTION_CHARS = ("?", "？")
 
 
