@@ -85,6 +85,25 @@ SUBSTANTIVE_MIN_CHARS = 8
 QUESTION_CHARS = ("?", "？")
 
 
+def get_env(name: str) -> str:
+    """Read an env var, falling back to Windows User-scope registry.
+
+    Claude Code's parent process may have been launched before the user
+    set the var via setx, in which case os.environ won't see it even
+    after a session restart. winreg reads the live User scope directly.
+    """
+    v = os.environ.get(name, "").strip()
+    if v or sys.platform != "win32":
+        return v
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as k:
+            val, _ = winreg.QueryValueEx(k, name)
+            return str(val).strip()
+    except (OSError, FileNotFoundError):
+        return ""
+
+
 def is_substantive(entry: dict) -> bool:
     """Whether an inbound TG message needs a reply (vs being a short ack).
 
@@ -145,8 +164,8 @@ def send_alert(inbound_text: str) -> None:
         f"\n\nLast inbound: \"{snippet}\""
     )
 
-    token = os.environ.get("TG_ALERT_BOT_TOKEN", "").strip()
-    chat_id = os.environ.get("TG_ALERT_CHAT_ID", "").strip()
+    token = get_env("TG_ALERT_BOT_TOKEN")
+    chat_id = get_env("TG_ALERT_CHAT_ID")
 
     if not token or not chat_id:
         # No credentials — fall back to local file log so the user can debug.

@@ -111,6 +111,10 @@ runner). On Windows:
 
 Restart your terminal / Claude Code so the env vars are picked up.
 
+> On Windows the hook also reads `HKCU\Environment` directly as a fallback,
+> so it works even if Claude Code's parent process was launched before you
+> ran the `setx`/`SetEnvironmentVariable` calls. Restart is still cleanest.
+
 > If you skip this step, the hook still runs — it just logs missed mirrors
 > to `~/.claude/tg-log/missed-mirrors.log` instead of alerting. Useful for
 > debugging your hook config before you wire up alerts.
