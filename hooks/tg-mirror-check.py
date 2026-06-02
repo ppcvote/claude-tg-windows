@@ -83,9 +83,18 @@ SUBSTANTIVE_MIN_CHARS = 15
 QUESTION_CHARS = ("?", "？")
 
 
-def is_substantive(text: str) -> bool:
-    """Whether an inbound TG message needs a reply (vs being a short ack)."""
-    t = (text or "").strip()
+def is_substantive(entry: dict) -> bool:
+    """Whether an inbound TG message needs a reply (vs being a short ack).
+
+    A photo or attachment inbound is *always* substantive — the user almost
+    certainly expects acknowledgement / analysis, even if the body text is
+    empty or just "(photo)". This caught us out repeatedly until the rule
+    was widened to include media inbounds explicitly.
+    """
+    # Media inbounds (photo, file attachment) are always substantive.
+    if entry.get("image_path") or entry.get("attachment_file_id"):
+        return True
+    t = (entry.get("text") or "").strip()
     if not t:
         return False
     if any(q in t for q in QUESTION_CHARS):
@@ -180,14 +189,18 @@ def main() -> None:
         return
 
     inbound = entries[last_in]
-    text = inbound.get("text") or ""
-    if not is_substantive(text):
+    if not is_substantive(inbound):
         return
 
     if has_outbound_after(entries, last_in):
         return  # mirror was sent — all good
 
-    send_alert(text)
+    # Compose alert payload — for photo-only inbounds, surface that fact
+    # rather than passing an empty string snippet.
+    alert_text = inbound.get("text") or ""
+    if not alert_text.strip() and (inbound.get("image_path") or inbound.get("attachment_file_id")):
+        alert_text = "(photo/attachment, no caption)"
+    send_alert(alert_text)
 
 
 if __name__ == "__main__":
